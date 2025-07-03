@@ -32,12 +32,20 @@ public class StatsResource {
         
         @JsonProperty("totalSeats")
         private final long totalSeats;
+        
+        @JsonProperty("occupiedSeats")
+        private final long occupiedSeats;
+        
+        @JsonProperty("occupancyRate")
+        private final double occupancyRate;
 
-        public StatsDTO(long totalEmployees, long totalFloors, long totalOffices, long totalSeats) {
+        public StatsDTO(long totalEmployees, long totalFloors, long totalOffices, long totalSeats, long occupiedSeats, double occupancyRate) {
             this.totalEmployees = totalEmployees;
             this.totalFloors = totalFloors;
             this.totalOffices = totalOffices;
             this.totalSeats = totalSeats;
+            this.occupiedSeats = occupiedSeats;
+            this.occupancyRate = occupancyRate;
         }
     }
 
@@ -60,7 +68,14 @@ public class StatsResource {
             Long totalSeats = session.createQuery("SELECT COUNT(s) FROM Seat s", Long.class)
                                   .getSingleResult();
 
-            StatsDTO stats = new StatsDTO(totalEmployees, totalFloors, totalOffices, totalSeats);
+            // Calculate occupied seats (seats that have at least one employee assigned)
+            Long occupiedSeats = session.createQuery("SELECT COUNT(DISTINCT s) FROM Seat s JOIN s.employees e", Long.class)
+                                     .getSingleResult();
+
+            // Calculate occupancy rate as percentage
+            double occupancyRate = totalSeats > 0 ? (occupiedSeats.doubleValue() / totalSeats.doubleValue()) * 100.0 : 0.0;
+
+            StatsDTO stats = new StatsDTO(totalEmployees, totalFloors, totalOffices, totalSeats, occupiedSeats, occupancyRate);
             return Response.ok(stats).build();
         } catch (Exception e) {
             // Handle errors and return an appropriate response
